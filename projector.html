@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Visual Hardware Projector</title>
+<style>
+  body { font: 15px/1.4 system-ui, sans-serif; background:#1a1c20; color:#ddd; margin:0; padding:24px; }
+  h1 { color:#2a9d8f; font-weight:600; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .block { width:200px; min-height:110px; border:1px solid #444; border-radius:8px; padding:12px; background:#222; }
+  .block.hit { border-color:#e74c3c; box-shadow:0 0 0 2px #e74c3c44; }
+  .block .hw { color:#aaddff; font-size:12px; }
+  .block .files { color:#888; font-size:11px; margin-top:8px; }
+  input { width:100%; background:#111; color:#eee; border:1px solid #444; padding:8px; }
+  label { display:block; margin:12px 0 4px; color:#aaa; }
+  #status { margin-top:16px; color:#c4a574; }
+</style>
+</head>
+<body>
+<h1>Visual Hardware Projector</h1>
+<p>Paste the QEMU serial trail. Last letter lights the hardware block.</p>
+<label>Serial trail</label>
+<input id="trail" placeholder="0EcCG6kbcdAB2CPqrsD" />
+<div class="row" id="board"></div>
+<p id="status"></p>
+<script>
+let MAP = { blocks: [] };
+fetch('map.json').then(r => r.json()).then(m => { MAP = m; draw(); });
+document.getElementById('trail').addEventListener('input', draw);
+function lastLetter(s) {
+  const keep = s.replace(/[^A-Za-z0-9]/g, '');
+  return keep ? keep[keep.length - 1] : '';
+}
+function draw() {
+  const L = lastLetter(document.getElementById('trail').value);
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  let hit = null;
+  (MAP.blocks || []).forEach(b => {
+    const el = document.createElement('div');
+    el.className = 'block' + (L && (b.letters || '').includes(L) ? ' hit' : '');
+    if (L && (b.letters || '').includes(L)) hit = b;
+    el.innerHTML = '<b>' + b.title + '</b><div class="hw">' + b.hw + '</div><div class="files">' +
+      (b.files || []).join('<br>') + '</div>';
+    board.appendChild(el);
+  });
+  document.getElementById('status').textContent = L
+    ? ('Last letter "' + L + '" → ' + (hit ? hit.title + ' / ' + hit.hw : 'no block mapped'))
+    : 'No trail yet';
+}
+</script>
+</body>
+</html>
