@@ -1,0 +1,25 @@
+{
+  "$comment": "VHP 0.0.1 hardware profile. Host probe + optional physical DIAG paste. Feed next to JCkernel as /Base/Computer/hw_profile.json conceptually.",
+  "version": "0.0.1",
+  "generated_by": "Visual Hardware Projector",
+  "machine": {
+    "source": "host-probe | known-profile | diag-paste",
+    "vendor": "",
+    "product": "",
+    "board": "",
+    "firmware": "UEFI | BIOS | unknown",
+    "arch_host": "x86_64"
+  },
+  "cpu": {},
+  "memory": {},
+  "pci": [],
+  "storage": [],
+  "usb": [],
+  "display": {},
+  "jckernel": {
+    "source_zip": "",
+    "files": 0,
+    "arch_wanted": "x86_64",
+    "match": []
+  }
+}
