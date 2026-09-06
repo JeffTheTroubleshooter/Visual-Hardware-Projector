@@ -1,0 +1,89 @@
+{
+  "version": "0.0.1",
+  "note": "Physical matrix from JCkernel boots. Not invented. HALTED means missing or unproven.",
+  "machines": [
+    {
+      "id": "dell-latitude-7290",
+      "name": "Dell Latitude 7290",
+      "role": "primary physical target",
+      "cpu": {
+        "vendor": "GenuineIntel",
+        "brand": "Intel Core i7-8650U",
+        "logical": 8,
+        "online_jckernel": 1,
+        "arch": "x86_64"
+      },
+      "memory": {"uefi_mmap_mb": 16261, "source": "UEFI mmap"},
+      "display": {
+        "gop": "1366x768 32bpp pitch 5504",
+        "setmode": "never",
+        "gpu_pci": "8086:5917",
+        "gpu_name": "UHD 620 (Kaby Lake)",
+        "fb": "SW-FB"
+      },
+      "pci": [
+        {"id": "8086:5917", "name": "UHD Graphics 620", "class": "0300", "jck": "GOP keep-native"},
+        {"id": "8086:F1A8", "name": "NVMe (SSD 760p / OEM)", "class": "0108", "jck": "probe; I/O often FAIL"},
+        {"id": "8086:9D2F", "name": "Sunrise Point-LP USB 3.0 xHCI", "class": "0C03", "jck": "driver=none HALTED"},
+        {"id": "10EC:525A", "name": "RTS525A Card Reader", "class": "FF00", "jck": "listed only"}
+      ],
+      "storage": [
+        {"bus": "NVMe", "pci": "8086:F1A8", "size_mb": 976762, "csf1": "no until format of data partition", "io": "often FAIL"}
+      ],
+      "usb": {"xhci": "0:20.0 8086:9D2F devices=0 driver=none"},
+      "boot": {
+        "32bit": "boots to splash / login / DIAG on later 0.0.2xx",
+        "64bit": "stuck after USE64 prefer kernel64.bin on V0.0.256; V0.0.260 prints Opening kernel64.bin",
+        "secure_boot": "must be off",
+        "notes": "i7-8650U physical proof 2026-08-31 DIAG video. Battery N/A. PS/2 kbd+mouse present."
+      },
+      "compat": [
+        "BAR may sit above 4GiB — 32-bit kernel cannot MMIO-map it",
+        "64-bit kernel64.bin is the path that can map GOP/NVMe BARs above 4GiB",
+        "Do not GOP.SetMode",
+        "XHCI persist not available — CrashDump stays LIVE-RAM unless UHCI MSC"
+      ]
+    },
+    {
+      "id": "thinkpad-x1c8",
+      "name": "ThinkPad X1 Carbon Gen 8",
+      "role": "boots, no disk",
+      "cpu": {"brand": "Ice Lake / Comet Lake class", "arch": "x86_64"},
+      "storage": [{"bus": "NVMe", "io": "not seen", "note": "no disk in 2026-09-01 matrix"}],
+      "boot": {"32bit": "boots", "64bit": "unproven", "notes": "needs skip_reason on RST/VMD/BAR"}
+    },
+    {
+      "id": "thinkpad-t510",
+      "name": "ThinkPad T510",
+      "role": "no boot",
+      "cpu": {"brand": "Arrandale i5/i7", "arch": "x86_64-capable-but-old-UEFI"},
+      "boot": {"32bit": "no boot", "64bit": "no", "notes": "legacy GOP / CSM path. Not the 64-bit target."}
+    },
+    {
+      "id": "apple-a2141",
+      "name": "Apple MacBook Pro 16 2019 (A2141)",
+      "role": "no boot",
+      "cpu": {"brand": "Coffee Lake i7/i9", "arch": "x86_64"},
+      "boot": {"32bit": "no boot", "64bit": "no", "notes": "T2 / Apple EFI. Out of scope until 7290 64-bit prompt exists."}
+    },
+    {
+      "id": "qemu-ovmf",
+      "name": "QEMU + OVMF (Fedora host)",
+      "role": "serial trail lab, not physical proof",
+      "cpu": {"brand": "QEMU Virtual CPU", "arch": "x86_64", "hypervisor": true},
+      "memory": {"recommend_mb": 256, "kernel_cap_mb": 1024},
+      "display": {"gop": "often 0x80000000 window — RAM on 16GiB host, MMIO on small guests"},
+      "storage": [{"bus": "AHCI or virtio", "note": "NVMe can be added; not the 7290 controller"}],
+      "boot": {
+        "32bit": "0.0.240 first prompt; 0.0.242 DISK/USB",
+        "64bit": "serial 6kbcdAB2CPqrsD then hangs after jump or host OOM",
+        "notes": "Do not trust TCG+OVMF on a busy box as 64-bit proof. Physical 7290 + USE64 is the proof."
+      },
+      "compat": [
+        "QEMU_MEM 256M",
+        "run-uefi-serial = -display none -serial stdio",
+        "pkill leftover qemu before launch"
+      ]
+    }
+  ]
+}
