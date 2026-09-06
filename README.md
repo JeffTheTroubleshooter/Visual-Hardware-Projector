@@ -1,4 +1,4 @@
-# Visual Hardware Projector 0.0.1
+# Visual Hardware Projector 0.0.2
 
 One program. Linux app + optional browser page.
 
@@ -24,6 +24,19 @@ python3 vhp.py --probe --zip JCkernel.zip --trail 6kbcdAB2CPqrsD --export hw_pro
 ```
 
 `--probe` prints the host inventory without a window.
+
+## Update from GitHub
+
+In the app: **Update from GitHub**. That reads
+
+`https://raw.githubusercontent.com/JeffTheTroubleshooter/Visual-Hardware-Projector/main/VERSION`
+
+If GitHub is newer, it downloads `main.zip` and replaces the files listed in `MANIFEST`. No GitHub login. A copy of the old files lands in `.vhp-backup-<oldver>/`. Restart after `vhp.py` itself changes.
+
+```bash
+python3 vhp.py --check-update
+python3 vhp.py --update
+```
 
 ## Browser
 

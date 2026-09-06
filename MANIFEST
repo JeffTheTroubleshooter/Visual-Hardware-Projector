@@ -1,0 +1,10 @@
+# Files the Update from GitHub button replaces.
+VERSION
+vhp.py
+map.json
+known_machines.json
+projector.html
+README.md
+CHANGELOG.md
+hw_profile.schema.json
+MANIFEST

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.2 — 2026-09-06
+
+- **Update from GitHub** button. Reads public `VERSION` on `JeffTheTroubleshooter/Visual-Hardware-Projector` main, then replaces program files from `main.zip`. No login.
+- CLI: `python3 vhp.py --check-update` and `python3 vhp.py --update`.
+- Previous copy kept in `.vhp-backup-<oldver>/`. Restart after `vhp.py` changes.
+
 ## 0.0.1 — 2026-09-06
 
 First versioned release of Visual Hardware Projector.
