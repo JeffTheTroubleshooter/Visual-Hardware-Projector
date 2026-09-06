@@ -2,51 +2,147 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Visual Hardware Projector</title>
+<title>Visual Hardware Projector 0.0.1</title>
 <style>
-  body { font: 15px/1.4 system-ui, sans-serif; background:#1a1c20; color:#ddd; margin:0; padding:24px; }
-  h1 { color:#2a9d8f; font-weight:600; }
-  .row { display:flex; gap:16px; flex-wrap:wrap; }
-  .block { width:200px; min-height:110px; border:1px solid #444; border-radius:8px; padding:12px; background:#222; }
-  .block.hit { border-color:#e74c3c; box-shadow:0 0 0 2px #e74c3c44; }
-  .block .hw { color:#aaddff; font-size:12px; }
-  .block .files { color:#888; font-size:11px; margin-top:8px; }
-  input { width:100%; background:#111; color:#eee; border:1px solid #444; padding:8px; }
-  label { display:block; margin:12px 0 4px; color:#aaa; }
-  #status { margin-top:16px; color:#c4a574; }
+  :root { --bg:#1a1c20; --card:#222; --fg:#ddd; --muted:#888; --accent:#2a9d8f; --hit:#e74c3c; --cpu:#aaddff; --paper:#c4a574; }
+  body { font: 14px/1.45 system-ui, sans-serif; background:var(--bg); color:var(--fg); margin:0; padding:24px; }
+  h1 { color:var(--accent); font-weight:600; margin:0 0 4px; }
+  .sub { color:#aaa; margin-bottom:16px; }
+  label { display:block; margin:10px 0 4px; color:#aaa; font-size:12px; }
+  input, textarea, select { width:100%; background:#111; color:#eee; border:1px solid #444; padding:8px; box-sizing:border-box; }
+  textarea { min-height:70px; font-family: ui-monospace, monospace; font-size:12px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; }
+  .block { width:200px; min-height:120px; border:1px solid #444; border-radius:8px; padding:10px; background:var(--card); cursor:pointer; }
+  .block.hit { border-color:var(--hit); box-shadow:0 0 0 2px #e74c3c44; }
+  .block.match { border-color:var(--accent); }
+  .block .hw { color:var(--cpu); font-size:12px; }
+  .block .meta { color:var(--paper); font-size:11px; margin-top:6px; }
+  .block .files { color:var(--muted); font-size:11px; margin-top:6px; }
+  #status { margin-top:14px; color:var(--paper); white-space:pre-wrap; }
+  #detail { margin-top:14px; background:#15161a; padding:12px; border-radius:8px; font: 12px/1.4 ui-monospace, monospace; white-space:pre-wrap; min-height:160px; }
+  .ver { color:#666; font-size:12px; }
 </style>
 </head>
 <body>
-<h1>Visual Hardware Projector</h1>
-<p>Paste the QEMU serial trail. Last letter lights the hardware block.</p>
+<h1>Visual Hardware Projector <span class="ver">0.0.1</span></h1>
+<p class="sub">Browser board: paste a serial trail and optional DIAG. Host PCI probe and zip scan run in <code>vhp.py</code> on Linux.</p>
 <label>Serial trail</label>
-<input id="trail" placeholder="0EcCG6kbcdAB2CPqrsD" />
+<input id="trail" placeholder="0EcCG6kbcdAB2CPqrsD" value="0EcCG6kbcdAB2CPqrsD"/>
+<label>Target machine</label>
+<select id="machine"></select>
+<label>Physical DIAG paste (optional)</label>
+<textarea id="diag" placeholder="paste DIAG from the 7290"></textarea>
 <div class="row" id="board"></div>
 <p id="status"></p>
+<pre id="detail"></pre>
 <script>
-let MAP = { blocks: [] };
-fetch('map.json').then(r => r.json()).then(m => { MAP = m; draw(); });
+let MAP = { blocks: [], trail_decode: {} };
+let KNOWN = { machines: [] };
+Promise.all([
+  fetch('map.json').then(r => r.json()),
+  fetch('known_machines.json').then(r => r.json()).catch(() => ({machines:[]}))
+]).then(([m, k]) => {
+  MAP = m; KNOWN = k;
+  const sel = document.getElementById('machine');
+  (KNOWN.machines || []).forEach((mach, i) => {
+    const o = document.createElement('option');
+    o.value = mach.id; o.textContent = mach.name;
+    if (i === 0) o.selected = true;
+    sel.appendChild(o);
+  });
+  draw();
+});
 document.getElementById('trail').addEventListener('input', draw);
+document.getElementById('diag').addEventListener('input', draw);
+document.getElementById('machine').addEventListener('change', draw);
 function lastLetter(s) {
   const keep = s.replace(/[^A-Za-z0-9]/g, '');
   return keep ? keep[keep.length - 1] : '';
 }
+function keepTrail(s) { return s.replace(/[^A-Za-z0-9]/g, ''); }
+function currentMachine() {
+  const id = document.getElementById('machine').value;
+  return (KNOWN.machines || []).find(m => m.id === id) || {};
+}
 function draw() {
-  const L = lastLetter(document.getElementById('trail').value);
+  const trail = document.getElementById('trail').value;
+  const L = lastLetter(trail);
+  const keep = keepTrail(trail);
   const board = document.getElementById('board');
   board.innerHTML = '';
   let hit = null;
   (MAP.blocks || []).forEach(b => {
     const el = document.createElement('div');
-    el.className = 'block' + (L && (b.letters || '').includes(L) ? ' hit' : '');
-    if (L && (b.letters || '').includes(L)) hit = b;
-    el.innerHTML = '<b>' + b.title + '</b><div class="hw">' + b.hw + '</div><div class="files">' +
-      (b.files || []).join('<br>') + '</div>';
+    const isHit = L && (b.letters || '').includes(L);
+    el.className = 'block' + (isHit ? ' hit' : '');
+    if (isHit) hit = b;
+    el.innerHTML = '<b>' + b.title + '</b>'
+      + '<div class="hw">' + (b.hw || '') + '</div>'
+      + '<div class="meta">' + (b.boot64 || '') + '</div>'
+      + '<div class="files">' + (b.files || []).map(f => f.split('/').pop()).join('<br>') + '</div>';
+    el.addEventListener('click', () => showBlock(b, hit, keep));
     board.appendChild(el);
   });
-  document.getElementById('status').textContent = L
+  const km = currentMachine();
+  let status = L
     ? ('Last letter "' + L + '" → ' + (hit ? hit.title + ' / ' + hit.hw : 'no block mapped'))
     : 'No trail yet';
+  if (km.name) status += '\nTarget ' + km.name + ' — ' + (km.role || '');
+  const dec = (MAP.trail_decode || {})[L];
+  if (dec) status += '\n' + L + ' means: ' + dec;
+  document.getElementById('status').textContent = status;
+  showOverview(km, hit, keep);
+}
+function showOverview(km, hit, keep) {
+  const lines = [];
+  lines.push('64-BIT CUT');
+  if (keep.endsWith('6') && keep.indexOf('k') < 0)
+    lines.push('- Died at jump into kernel64. Confirm kernel64.bin + current BOOTX64.');
+  else if (keep.indexOf('k') >= 0 && keep.indexOf('s') < 0)
+    lines.push('- entry64 started (k) but CR3 not confirmed (s). Paging is the next cut.');
+  else if (keep.indexOf('s') >= 0 && keep.indexOf('t') < 0)
+    lines.push('- CR3 live, GOP not mapped. Need letter t (map FB after CR3).');
+  else if (keep.indexOf('t') >= 0)
+    lines.push('- GOP mapped after CR3. Next is IDT / IRQ / kprint, then a prompt.');
+  else
+    lines.push('- Paste the live serial trail from QEMU or a photo of the 64-bit USB.');
+  lines.push('- Physical proof is the Latitude 7290 + USE64, not Fedora QEMU.');
+  if (km.boot) {
+    lines.push('');
+    lines.push('TARGET ' + km.name);
+    lines.push('32-bit: ' + (km.boot['32bit'] || ''));
+    lines.push('64-bit: ' + (km.boot['64bit'] || ''));
+    (km.compat || []).forEach(c => lines.push('! ' + c));
+  }
+  const diag = document.getElementById('diag').value;
+  if (diag.trim()) {
+    const ids = diag.match(/[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}/g) || [];
+    lines.push('');
+    lines.push('DIAG PASTE pci ids: ' + (ids.slice(0, 8).join(', ') || 'none'));
+  }
+  document.getElementById('detail').textContent = lines.join('\n');
+}
+function showBlock(b, hit, keep) {
+  const lines = [
+    '== ' + b.title + ' ==',
+    'hardware : ' + b.hw,
+    'boot64   : ' + b.boot64,
+    'letters  : ' + (b.letters || '(none)'),
+    'ports    : ' + ((b.ports || []).join(', ') || '—'),
+    'mmio     : ' + ((b.mmios || []).join(', ') || '—'),
+    '',
+    'need:',
+    b.need || '',
+    '',
+    'source files the kernel uses for this block:',
+    ...(b.files || []).map(f => '  + ' + f),
+    '',
+    'symbols / machine-code names:',
+    '  ' + ((b.symbols || []).join(', ') || '—'),
+    '',
+    'Open vhp.py on Linux and import a JCkernel zip to list the actual source lines that touch these ports and registers.'
+  ];
+  document.getElementById('detail').textContent = lines.join('\n');
 }
 </script>
 </body>
